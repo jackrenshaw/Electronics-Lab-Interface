@@ -1,0 +1,26 @@
+{
+  "name": "electronics-lab-interface",
+  "version": "1.0.0",
+  "description": "An interface for interacting with electronics labs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jackrenshaw/Electronics-Lab-Interface.git"
+  },
+  "author": "Jack Renshaw",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jackrenshaw/Electronics-Lab-Interface/issues"
+  },
+  "homepage": "https://github.com/jackrenshaw/Electronics-Lab-Interface#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "jquery": "^3.6.0",
+    "jquery-ui": "^1.13.0",
+    "jquery-ui-dist": "^1.12.1"
+  }
+}
