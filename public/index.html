@@ -137,9 +137,26 @@ connector{
   position: relative;
   display:inline-block;
 }
+.contextmenu{
+  width: 200px;
+  max-width: 200px;
+  display: none;
+}
+board{
+  width: 100%;
+  min-height: 800px;
+  border-bottom: 1px solid #c0c0c0;
+}
+#contextmenu-newComponent tr{
+  padding: 10px;
+}
+#contextmenu-newComponent tr:hover{
+  background: #eee;
+}
     </style>
-<script src="https://swisnl.github.io/jQuery-contextMenu/dist/jquery.contextMenu.js" type="text/javascript"></script>
-
+<script type="text/javascript">
+var targetComponentID = "";
+</script>
 <link rel="stylesheet" href="js/jquery-ui.min.css">
     <script type="text/javascript">
       board = {
@@ -159,6 +176,11 @@ connector{
               top:-3,
               left:80
             }
+          },
+          label:{
+            top:-20,
+            left:17,
+            default:"1k"
           }
         },
         inductor:{
@@ -240,17 +262,24 @@ connector{
           $(this).css("position","absolute").offset(offset);
         });
       }
-      function newComponent(type){
+      function newComponent(type,x,y){
+        if(!x) x == 0;
+        if(!y) y == 0;
+        console.log(x);
+        console.log(y);
         if(components.hasOwnProperty(type) && board.components.hasOwnProperty(type)){
           const id = board.components[type].length;
           const componentID = type+board.components[type].length;
           const componentHTML = '<component enabled="enabled" class="'+type+'" component-type="'+type+'" id="'+componentID+'" component-id="'+id+'"></component>';
           $("board").append(componentHTML);
+          $("#"+componentID).offset({top:y,left:x});
           for(var connector in components[type].connectors){
             $("#"+componentID).append("<connector name='"+connector+"'></connector");
             console.log(components[type].connectors[connector]);
             $("#"+componentID+" connector[name='"+connector+"']").css("top",components[type].connectors[connector].top).css("left",components[type].connectors[connector].left);
           }
+          $("#"+componentID).append("<label style='position:relative;'>"+components[type].label.default+"</label>")
+          $("#"+componentID+" label").css("top",components[type].label.top).css("left",components[type].label.left);
           board.components[type].push({componentID:{}});
           //$("#"+componentID).offset({top:250,left:250});
           componentListen();
@@ -320,35 +349,57 @@ connector{
           });
           $( function() {$( "component, wire" ).draggable();} );
       });
-    $(function() {
-        $.contextMenu({
-            selector: 'html', 
-            callback: function(key, options) {
-                var m = "clicked: " + key;
-                window.console && console.log(m) || alert(m); 
-            },
-            items: {
-                "edit": {name: "Edit", icon: "edit"},
-                "cut": {name: "Cut", icon: "cut"},
-               copy: {name: "Copy", icon: "copy"},
-                "paste": {name: "Paste", icon: "paste"},
-                "delete": {name: "Delete", icon: "delete"},
-                "sep1": "---------",
-                "quit": {name: "Quit", icon: function(){
-                    return 'context-menu-icon context-menu-icon-quit';
-                }}
-            }
-        });
-
-        $('.context-menu-one').on('click', function(e){
-            console.log('clicked', this);
-        })    
-    });
-    </script>    
+    </script>
+    <script type="text/javascript">
+$(document).ready(function(){
+  $(document).bind("contextmenu", function(e) {
+    return false;
+});
+$("board").click(function(event){
+  $(".contextmenu").hide();
+  if(event.shiftKey){
+    
+  }
+})
+$("board").dblclick(function(){
+  $("component").each(function(){
+    var type = $(this).attr("component-type")
+    $(this).find("input").replaceWith("<label>"+$(this).find("input").val()+"</label>");
+    if(components.hasOwnProperty(type)){
+      $(this).find("label").css("position","relative").css("top",components[type].label.top).css("left",components[type].label.left);
+    }
+  })
+})
+$( "board" ).contextmenu(function(action) {
+  console.log(action);
+  console.log(action.target)
+  if(action.target.localName == "board") contextMenu(null,null,action.clientX,action.clientY)
+  if(action.target.localName == "component") contextMenu("component",action.target.id,action.clientX,action.clientY)
+})
+$("#contextmenu-newComponent tr").click(function(action){
+  if(components.hasOwnProperty($(this).attr("componenttype"))) newComponent($(this).attr("componenttype"),$("#contextmenu").offset().left,$("#contextmenu").offset().top);
+    $("#contextmenu").hide();
+});
+$("#contextmenu-component .list-group-item").click(function(){
+  if($(this).text() == "Adjust Value"){
+    $("#"+targetComponentID).find("label").replaceWith("<input type='text' value='"+$(targetComponentID).find("label").text()+"'>")
+  }
+  if($(this).text() == "Delete") $("#"+targetComponentID).remove();
+  $("#contextmenu-component").hide();
+})
+})
+function contextMenu(type,id,x,y){
+  console.log(id);
+  if(!type) $("#contextmenu").show().offset({top:y,left:x});
+  if(type == "component"){
+    $("#contextmenu-component").show().offset({top:y,left:x});
+    targetComponentID = id;
+  }
+}
+    </script>  
     <!-- Custom styles for this template -->
     <link href="css/headers.css" rel="stylesheet">
     <link href="css/sidebars.css" rel="stylesheet">
-
   </head>
   <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -469,6 +520,69 @@ connector{
   <div class="b-example-divider"></div>
 <board></board>
 </main>
-      
+<div id="contextmenu" class='contextmenu'>
+<ul class="list-group">
+  <li class="list-group-item">New Component</li>
+  <li class="list-group-item">
+<table style="text-align:center;cursor:pointer;" id="contextmenu-newComponent">
+  <tr componentType="resistor"><td style="text-align:center;">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="30">
+  <path d="M10 15
+l15 0
+l2.5 -5
+l5 10
+l5 -10
+l5 10
+l5 -10
+l5 10
+l2.5 -5
+l15 0" stroke="black" stroke-width="1" stroke-linejoin="bevel" fill="none"></path>
+</svg></td>
+<td>Resistor</td></tr>
+<tr componentType="capacitor"><td style="text-align:center;">
+<svg
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.0"
+   width="35"
+   height="32"
+   id="svg2">
+  <defs
+     id="defs4" />
+  <g
+     id="layer1">
+    <path
+       d="M 16,5.0010577 C 16,26.999992 16,26.999992 16,26.999992"
+       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path17478" />
+    <path
+       d="M 19.000016,26.999994 L 19.000016,5.0010588"
+       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:1.5;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="path17480" />
+    <path
+       d="M 16.11348,16 L 1.69e-005,16"
+       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       id="path17482" />
+    <path
+       d="M 18.980533,16 C 19.743365,16 35,16 35,16"
+       style="fill:none;fill-opacity:0.75;fill-rule:evenodd;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       id="path17484" />
+  </g>
+</svg></td>
+ <td>Capacitor</td></tr></table>
+  </li>
+  <li class="list-group-item">Dapibus ac facilisis in</li>
+  <li class="list-group-item">Morbi leo risus</li>
+  <li class="list-group-item">Porta ac consectetur ac</li>
+  <li class="list-group-item">Vestibulum at eros</li>
+</ul>  
+</div>
+<div id="contextmenu-component" class='contextmenu'>
+<ul class="list-group">
+  <li class="list-group-item">Adjust Value</li>
+  <li class="list-group-item">Delete</li>
+</ul>  
+</div>
   </body>
 </html>
