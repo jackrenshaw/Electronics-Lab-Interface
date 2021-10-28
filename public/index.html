@@ -29,6 +29,58 @@
 
 
     <style>
+    board{
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, #ddd 1px, transparent 1px),
+    linear-gradient(to bottom, #ddd 1px, transparent 1px);
+  width: 100%;
+  min-height: 800px;
+  border-bottom: 1px solid #c0c0c0;
+  position: absolute;
+  top: 200px;
+}
+    breadboard{
+  background-size: 40px 40px;
+  background-color: #f2efd0;
+  background-image:
+    linear-gradient(to right, #ccc 1px, transparent 1px),
+    linear-gradient(to bottom, #ccc 1px, transparent 1px);
+  width: 100%;
+  min-height: 800px;
+  border-bottom: 1px solid #c0c0c0;
+  position: absolute;
+  top: 200px;
+}
+bench{
+  width: 100%;
+  height: 200px;
+  background:  #e5e5e5;
+  border-bottom:  1px solid #333;
+  position: absolute;
+  opacity: 1.0;
+}
+oscilloscope{
+  display: inline-block;
+  width: 30%;
+  border-left: 1px solid #eee;
+  margin: 1%;
+}
+powersupply{
+  display: inline-block;
+  width: 30%;
+  border-left: 1px solid #eee;
+  margin: 1%;
+}
+signalgenerator{
+  display: inline-block;
+  width: 30%;
+  margin: 1%;
+}
+oscilloscope port.positive,powersupply port.positive,signalgenerator port.positive{
+
+}
+
       .bd-placeholder-img {
         font-size: 1.125rem;
         text-anchor: middle;
@@ -142,16 +194,16 @@ connector{
   max-width: 200px;
   display: none;
 }
-board{
-  width: 100%;
-  min-height: 800px;
-  border-bottom: 1px solid #c0c0c0;
-}
 #contextmenu-newComponent tr{
   padding: 10px;
 }
 #contextmenu-newComponent tr:hover{
   background: #eee;
+}
+#selector{
+  background: blue;
+  opacity: 0.5;
+  border: 2px solid blue;
 }
     </style>
 <script type="text/javascript">
@@ -159,85 +211,19 @@ var targetComponentID = "";
 </script>
 <link rel="stylesheet" href="js/jquery-ui.min.css">
     <script type="text/javascript">
-      board = {
+      var board = {
         wires:[],
         nodes:[],
         components:[],
       }
-      components = {
-        resistor:{
-          image:"img/res.png",
-          connectors: {
-            0:{
-              top:-3,
-              left:0
-            },
-            1:{
-              top:-3,
-              left:80
-            }
-          },
-          label:{
-            top:-20,
-            left:17,
-            default:"1k"
-          }
-        },
-        inductor:{
-          image:"img/ind.png",
-          connectors: {
-            0:{
-              top:0,
-              left:0
-            },
-            1:{
-              top:0,
-              left:80
-            }
-          }
-        },
-        capacitor:{
-          image:"img/cap.png",
-          connectors: {
-            0:{
-              top:11,
-              left:0
-            },
-            1:{
-              top:11,
-              left:80
-            }
-          }
-        },
-        opamp:{
-          image:"img/opamp.png",
-          connectors: {
-            "+":{
-              top:34,
-              left:-4
-            },
-            "-":{
-              top:8,
-              left:-14
-            },
-            "V+":{
-              top:-12,
-              left:23
-            },
-            "V-":{
-              top:50,
-              left:13
-            },
-            "O":{
-              top:20,
-              left:50
-            }
-          }
+      $.getJSON("components.json").done(function(components){
+        console.log(components);
+        for(var component in components){
+          board.components[component] = [];
         }
-      };
-      for(var component in components){
-        board.components[component] = [];
-      }
+      }).fail(function(error){
+
+      });
       function componentListen(){
         $("component").click(function(){
           $("component").draggable().removeClass("selected-component").removeClass("draggable").draggable('disable');
@@ -259,6 +245,8 @@ var targetComponentID = "";
         $("component").mouseup(function(){
           console.log("fixing position");
           const offset = $(this).offset();
+          offset.top = Math.ceil(offset.top / 2) * 2;
+          offset.left = Math.ceil(offset.left / 2) * 2;
           $(this).css("position","absolute").offset(offset);
         });
       }
@@ -327,6 +315,7 @@ var targetComponentID = "";
         });
       }
       $(document).ready(function(){
+        $("breadboard").hide();
           $("html").keypress(function(event){
             console.log(event.which);
             if(event.which == 18){
@@ -347,7 +336,7 @@ var targetComponentID = "";
           $("html").click(function(){
             //$("component, wire").removeClass("selected-component").removeClass("draggable").draggable("disable");
           });
-          $( function() {$( "component, wire" ).draggable();} );
+          $( function() {$( "component, wired" ).draggable();} );
       });
     </script>
     <script type="text/javascript">
@@ -355,12 +344,49 @@ $(document).ready(function(){
   $(document).bind("contextmenu", function(e) {
     return false;
 });
-$("board").click(function(event){
+$("board,breadboard").click(function(event){
   $(".contextmenu").hide();
   if(event.shiftKey){
     
   }
 })
+function wire(){
+$("board").click(function(event){
+  $(document).unbind("mousemove");
+  $("board wire").each(function(){
+    var position = $(this).offset();
+    $(this).css("position","absolute").css("left",position.left).css("top",position.top);
+  })
+  const wireid = $('wire').length;
+  var left = event.clientX;
+  var top = event.clientY;
+  console.log({top:event.clientY,left:event.clientX})
+  $("board").append("<wire id='wire"+wireid+"' style='display:inline-block;background:#333;'></wire>");
+  $("#wire"+wireid+"").show().offset({top:event.clientY,left:event.clientX});
+  $(document).mousemove(function(event) {
+    var cardinalOffset = [(top-event.clientY),(left-event.clientX),(event.clientY-top),(event.clientX-left)];
+    peakDirection = cardinalOffset.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);
+    switch(peakDirection) {
+      case 0:
+        $("#wire"+wireid+"").css("width","2px").css("height",(top-event.clientY)).offset({top:event.clientY,left:left});
+          console.log("trending up");
+        break;
+      case 1:
+        $("#wire"+wireid+"").css("height","2px").css("width",(left-event.clientX)).offset({top:top,left:event.clientX});
+        console.log("trending left");
+        break;
+      case 2:
+        console.log("trending down");
+        break;
+      case 3:
+        console.log("trending right");
+        break;
+    default:
+      console.log("do nothing");
+  }
+})
+});
+}
 $("board").dblclick(function(){
   $("component").each(function(){
     var type = $(this).attr("component-type")
@@ -399,7 +425,6 @@ function contextMenu(type,id,x,y){
     </script>  
     <!-- Custom styles for this template -->
     <link href="css/headers.css" rel="stylesheet">
-    <link href="css/sidebars.css" rel="stylesheet">
   </head>
   <body>
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
@@ -462,63 +487,22 @@ function contextMenu(type,id,x,y){
 </svg>    
 
 <main>
-
-  <div class="d-flex flex-column flex-shrink-0 p-3 bg-light" style="width: 280px;">
-    <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-dark text-decoration-none">
-      <svg class="bi me-2" width="40" height="32"><use xlink:href="#bootstrap"/></svg>
-      <span class="fs-4">Sidebar</span>
-    </a>
-    <hr>
-    <ul class="nav nav-pills flex-column mb-auto">
-      <li class="nav-item">
-        <a href="#" class="nav-link active" aria-current="page">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#home"/></svg>
-          Home
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link link-dark">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#speedometer2"/></svg>
-          Dashboard
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link link-dark">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#table"/></svg>
-          Orders
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link link-dark">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#grid"/></svg>
-          Products
-        </a>
-      </li>
-      <li>
-        <a href="#" class="nav-link link-dark">
-          <svg class="bi me-2" width="16" height="16"><use xlink:href="#people-circle"/></svg>
-          Customers
-        </a>
-      </li>
-    </ul>
-    <hr>
-    <div class="dropdown">
-      <a href="#" class="d-flex align-items-center link-dark text-decoration-none dropdown-toggle" id="dropdownUser2" data-bs-toggle="dropdown" aria-expanded="false">
-        <img src="https://github.com/mdo.png" alt="" width="32" height="32" class="rounded-circle me-2">
-        <strong>mdo</strong>
-      </a>
-      <ul class="dropdown-menu text-small shadow" aria-labelledby="dropdownUser2">
-        <li><a class="dropdown-item" href="#">New project...</a></li>
-        <li><a class="dropdown-item" href="#">Settings</a></li>
-        <li><a class="dropdown-item" href="#">Profile</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item" href="#">Sign out</a></li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="b-example-divider"></div>
+<bench>
+<oscilloscope>
+<port></port>
+<port></port>
+</oscilloscope>
+<powersupply>
+<port></port>
+<port></port>
+</powersupply>
+<signalgenerator>
+<port></port>
+<port></port>
+</signalgenerator>
+</bench>
 <board></board>
+<breadboard></breadboard>
 </main>
 <div id="contextmenu" class='contextmenu'>
 <ul class="list-group">
@@ -575,7 +559,7 @@ l15 0" stroke="black" stroke-width="1" stroke-linejoin="bevel" fill="none"></pat
   <li class="list-group-item">Dapibus ac facilisis in</li>
   <li class="list-group-item">Morbi leo risus</li>
   <li class="list-group-item">Porta ac consectetur ac</li>
-  <li class="list-group-item">Vestibulum at eros</li>
+  <li class="list-group-item" onclick="$('board').hide();$('breadboard').show();">Breadboard View</li>
 </ul>  
 </div>
 <div id="contextmenu-component" class='contextmenu'>

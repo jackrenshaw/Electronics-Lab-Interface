@@ -23,5 +23,6 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/js', express.static(path.join(__dirname, 'node_modules/jquery/dist')));
 app.use('/js', express.static(path.join(__dirname, 'node_modules/jquery-ui-dist')));
+app.use('/components.json', express.static(path.join(__dirname, 'config/components.json')));
 
 app.listen(PORT, () => console.log(`Listening on ${ PORT }`));
