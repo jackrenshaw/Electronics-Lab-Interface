@@ -1,23 +1,34 @@
 const express = require("express");
 const path = require('path');
 
+const PORT = process.env.PORT || 5000
+app = express();
+
+app.get("/SPICE",function(req,res){
 const { spawn } = require('child_process');
 const ls = spawn('ngspice', ['rc.cir']);
 
+var scopeData = [];
+rawData = "";
 ls.stdout.on('data', (data) => {
-  console.log(`stdout: ${data}`);
+  rawData += data;
 });
 
-ls.stderr.on('data', (data) => {
+ls.stderr.on('error', (data) => {
   console.error(`stderr: ${data}`);
 });
 
 ls.on('close', (code) => {
-  console.log(`child process exited with code ${code}`);
+  const spiceRegex = /[0-9]{1,4}\t(([0-9]+\.[0-9]+)(e(\+|-)[0-9]+)?\t)([0-9]+\.[0-9]+)(e(\+|-)[0-9]+)+?/g
+  var scopes = rawData.match(spiceRegex);
+  var scopeData = [];
+  for(var s of scopes){
+    e = s.split("\t");
+    scopeData.push([e[0],e[1],e[2]])
+  }
+  res.send(scopeData)
 });
-
-const PORT = process.env.PORT || 5000
-app = express();
+})
 
 app.use(express.static(path.join(__dirname, 'public')))
 

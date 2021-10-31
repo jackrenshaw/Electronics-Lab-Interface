@@ -12,8 +12,12 @@
 
     <script src="js/jquery.min.js"></script>
 <script src="js/jquery-ui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.5.1/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/underscore@1.13.1/underscore-umd-min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/underscore@1.13.1/underscore-esm-min.js"></script>
 
     <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.6.1/font/bootstrap-icons.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ" crossorigin="anonymous"></script>
@@ -208,17 +212,33 @@ connector{
     </style>
 <script type="text/javascript">
 var targetComponentID = "";
+var previousBoardPositions = ["","","","","","","","","",""];
+var rollIndex = 9;
+function saveBoard(){
+  previousBoardPositions = previousBoardPositions.slice(1)
+  previousBoardPositions.push($("board").html());
+}
+function rollBack(){
+  $("board").html(previousBoardPositions[rollIndex-1])
+  rollIndex--;
+}
+function rollForward(){
+  $("board").html(previousBoardPositions[rollIndex+1])
+  rollIndex++;
+}
 </script>
 <link rel="stylesheet" href="js/jquery-ui.min.css">
     <script type="text/javascript">
+      var components
       var board = {
         wires:[],
         nodes:[],
         components:[],
       }
-      $.getJSON("components.json").done(function(components){
-        console.log(components);
-        for(var component in components){
+      $.getJSON("components.json").done(function(cmp){
+        console.log(cmp);
+        components = cmp
+        for(var component in cmp){
           board.components[component] = [];
         }
       }).fail(function(error){
@@ -243,6 +263,7 @@ var targetComponentID = "";
           }
         });
         $("component").mouseup(function(){
+          saveBoard();
           console.log("fixing position");
           const offset = $(this).offset();
           offset.top = Math.ceil(offset.top / 2) * 2;
@@ -251,23 +272,24 @@ var targetComponentID = "";
         });
       }
       function newComponent(type,x,y){
+        saveBoard();
         if(!x) x == 0;
         if(!y) y == 0;
         console.log(x);
         console.log(y);
-        if(components.hasOwnProperty(type) && board.components.hasOwnProperty(type)){
+        if(board.components.hasOwnProperty(type)){
           const id = board.components[type].length;
           const componentID = type+board.components[type].length;
           const componentHTML = '<component enabled="enabled" class="'+type+'" component-type="'+type+'" id="'+componentID+'" component-id="'+id+'"></component>';
           $("board").append(componentHTML);
           $("#"+componentID).offset({top:y,left:x});
-          for(var connector in components[type].connectors){
+          for(var connector in components[type].model.connectors){
             $("#"+componentID).append("<connector name='"+connector+"'></connector");
-            console.log(components[type].connectors[connector]);
-            $("#"+componentID+" connector[name='"+connector+"']").css("top",components[type].connectors[connector].top).css("left",components[type].connectors[connector].left);
+            console.log(components[type].model.connectors[connector]);
+            $("#"+componentID+" connector[name='"+connector+"']").css("top",components[type].model.connectors[connector].top).css("left",components[type].model.connectors[connector].left);
           }
-          $("#"+componentID).append("<label style='position:relative;'>"+components[type].label.default+"</label>")
-          $("#"+componentID+" label").css("top",components[type].label.top).css("left",components[type].label.left);
+          $("#"+componentID).append("<label style='position:relative;'>"+components[type].model.label.default+"</label>")
+          $("#"+componentID+" label").css("top",components[type].model.label.top).css("left",components[type].model.label.left);
           board.components[type].push({componentID:{}});
           //$("#"+componentID).offset({top:250,left:250});
           componentListen();
@@ -344,6 +366,15 @@ $(document).ready(function(){
   $(document).bind("contextmenu", function(e) {
     return false;
 });
+    $(document).keydown(function(e){
+    $(document).unbind("contextmenu");
+    $("board").unbind("contextmenu");
+    })
+    $(document).keyup(function(e){
+  $(document).bind("contextmenu", function(e) {
+    return false;
+});
+    })
 $("board,breadboard").click(function(event){
   $(".contextmenu").hide();
   if(event.shiftKey){
@@ -556,8 +587,8 @@ l15 0" stroke="black" stroke-width="1" stroke-linejoin="bevel" fill="none"></pat
 </svg></td>
  <td>Capacitor</td></tr></table>
   </li>
-  <li class="list-group-item">Dapibus ac facilisis in</li>
-  <li class="list-group-item">Morbi leo risus</li>
+  <li class="list-group-item" onclick="rollBack()"><i class="bi bi-arrow-counterclockwise"></i>Undo</li>
+  <li class="list-group-item" onclick="rollForward()"><i class="bi bi-arrow-clockwise"></i>Redo</li>
   <li class="list-group-item">Porta ac consectetur ac</li>
   <li class="list-group-item" onclick="$('board').hide();$('breadboard').show();">Breadboard View</li>
 </ul>  
@@ -568,5 +599,77 @@ l15 0" stroke="black" stroke-width="1" stroke-linejoin="bevel" fill="none"></pat
   <li class="list-group-item">Delete</li>
 </ul>  
 </div>
+<!-- Large modal -->
+
+<div id="scopeModal" class="modal fade bd-example-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+ <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Modal title</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <canvas id="myChart" width="400" height="400"></canvas>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary">Save changes</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </div>  </div>
+</div>
+<script type="text/javascript">
+Chart.defaults.elements.bar.borderWidth = 1;
+
+var time = [];
+var amp = [];
+var amp1 = [];
+for(var i=0;i<10000;i++){
+  var x = Math.round(i*0.01*100)/100;
+  var y = Math.sin(x);
+  y1 = 2*Math.sin(x/4);
+  time.push(x)
+  amp.push(y)
+  amp1.push(y1);
+}
+
+const data = {
+  labels: time,
+  datasets: [{
+    label: 'My First dataset',
+    backgroundColor: 'rgb(255, 99, 132)',
+    borderColor: 'rgb(255, 99, 132)',
+    tension: 0.1,
+    showLine: true,
+    pointBorderWidth:0,
+    pointRadius: 1,
+    pointHoverRadius: 1,
+    data: amp,
+    borderWidth:1,
+  },{
+    label: 'My First dataset',
+    backgroundColor: 'rgb(99, 255, 132)',
+    borderColor: 'rgb(99, 255, 132)',
+    tension: 0.1,
+    showLine: true,
+    pointBorderWidth:0,
+    pointRadius: 1,
+    pointHoverRadius: 1,
+    data: amp1,
+    borderWidth:1,
+  },]
+};
+const config = {
+  type: 'line',
+  data: data,
+  options: {}
+};
+
+  const myChart = new Chart(
+    document.getElementById('myChart'),
+    config
+  );
+</script>
   </body>
 </html>
